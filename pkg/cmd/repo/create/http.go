@@ -1,6 +1,8 @@
 package create
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -64,63 +66,85 @@ func repoCreate(client *http.Client, hostname string, input repoCreateInput, tem
 			}
 		}
 
-		templateInput := repoTemplateInput{
-			Name:         input.Name,
-			Visibility:   input.Visibility,
-			OwnerID:      input.OwnerID,
-			RepositoryID: templateRepositoryID,
-		}
+		//cdl--templateInput := repoTemplateInput{
+		//cdl--	Name:         input.Name,
+		//cdl--	Visibility:   input.Visibility,
+		//cdl--	OwnerID:      input.OwnerID,
+		//cdl--	RepositoryID: templateRepositoryID,
+		//cdl--}
 
-		variables := map[string]interface{}{
-			"input": templateInput,
-		}
+		//cdl--variables := map[string]interface{}{
+		//cdl--	"input": templateInput,
+		//cdl--}
 
-		err := apiClient.GraphQL(hostname, `
-		mutation CloneTemplateRepository($input: CloneTemplateRepositoryInput!) {
-			cloneTemplateRepository(input: $input) {
-				repository {
-					id
-					name
-					owner { login }
-					url
-				}
-			}
-		}
-		`, variables, &response)
-		if err != nil {
-			return nil, err
-		}
+		//cdl--		err := apiClient.GraphQL(hostname, `
+		//cdl--		mutation CloneTemplateRepository($input: CloneTemplateRepositoryInput!) {
+		//cdl--			cloneTemplateRepository(input: $input) {
+		//cdl--				repository {
+		//cdl--					id
+		//cdl--					name
+		//cdl--					owner { login }
+		//cdl--					url
+		//cdl--				}
+		//cdl--			}
+		//cdl--		}
+		//cdl--		`, variables, &response)
+		//cdl--if err != nil {
+		//cdl--	return nil, err
+		//cdl--}
 
 		return api.InitRepoHostname(&response.CloneTemplateRepository.Repository, hostname), nil
 	}
 
+	//cdl--var response struct {
+	//cdl--	CreateRepository struct {
+	//cdl--		Repository api.Repository
+	//cdl--	}
+	//cdl--}
+
+	//cdl--variables := map[string]interface{}{
+	//cdl--	"input": input,
+	//cdl--}
+
+	//cdl--	err := apiClient.GraphQL(hostname, `
+	//cdl--	mutation RepositoryCreate($input: CreateRepositoryInput!) {
+	//cdl--		createRepository(input: $input) {
+	//cdl--			repository {
+	//cdl--				id
+	//cdl--				name
+	//cdl--				owner { login }
+	//cdl--				url
+	//cdl--			}
+	//cdl--		}
+	//cdl--	}
+	//cdl--	`, variables, &response)
+	// dilandry : Not caring about response for now
+	info := repoTemplateInput{
+		Name:       input.Name,
+		Visibility: input.Visibility,
+	}
+
 	var response struct {
-		CreateRepository struct {
-			Repository api.Repository
+		NodeID       string `json:"node_id"`
+		Organization struct {
+			NodeID string `json:"node_id"`
 		}
 	}
 
-	variables := map[string]interface{}{
-		"input": input,
+	requestByte, err := json.Marshal(info)
+	if err != nil {
+		return nil, err
 	}
+	requestBody := bytes.NewReader(requestByte)
 
-	err := apiClient.GraphQL(hostname, `
-	mutation RepositoryCreate($input: CreateRepositoryInput!) {
-		createRepository(input: $input) {
-			repository {
-				id
-				name
-				owner { login }
-				url
-			}
-		}
-	}
-	`, variables, &response)
+	//cdl--err = apiClient.REST(hostname, "POST", fmt.Sprintf("users/%s", "dilandry"), requestBody, nil)
+	err = apiClient.REST(hostname, "POST", "user/repos", requestBody, &response)
 	if err != nil {
 		return nil, err
 	}
 
 	return api.InitRepoHostname(&response.CreateRepository.Repository, hostname), nil
+	//return nil, nil
 }
 
 // using API v3 here because the equivalent in GraphQL needs `read:org` scope
